@@ -1,180 +1,89 @@
-\# Smart Excel Stream \& Validator (ODC)
+# Smart Excel Stream & Validator (ODC)
 
+**Validates, cleans, and parses massive Excel files at runtime using rule-driven JSON configuration. Designed for high performance via C# streaming to eliminate timeouts and payload errors in OutSystems Developer Cloud.**
 
+---
 
-\*\*Validates, cleans, and parses massive Excel files at runtime using rule-driven JSON configuration. Designed for high performance via C# streaming to eliminate timeouts and payload errors in OutSystems Developer Cloud.\*\*
+## 🎯 Why choose this component?
 
+Processing massive Excel files (with over 50,000 or 100,000 rows) directly within OutSystems visual flows traditionally causes three major issues: **Server timeouts**, **high RAM consumption**, and **payload size errors (`OS-FLRT-60009` when exceeding the 5.5MB platform limit)**.
 
+**Smart Excel Stream & Validator** solves this natively:
+* **Extreme Performance:** Processes 100,000 rows in less than 4 seconds using *C# Streaming* (.NET Core).
+* **Smart Memory Consumption:** Reads the file row by row, without loading the entire binary into the container's RAM.
+* **Fail-Safe Architecture (Chunking):** Implements native pagination within the C# logic to slice the JSON output, bypassing the strict 5.5MB ODC platform limit.
+* **Dynamic Validation (Rule-Driven):** No need to build dozens of visual `If` nodes. Define your validation rules in a simple JSON schema and let the engine do the heavy lifting.
 
-\---
+---
 
+## 🏗️ API Reference (Server Action Signature)
 
+The component exposes a single centralized Server Action: **`ValidateExcelFile`**.
 
-\## 🎯 Porquê escolher este componente?
+### Input Parameters
+* **`FileBinary`** (*Binary Data*, Mandatory): The binary content of the Excel file (`.xlsx`) uploaded by the user.
+* **`ValidationRulesJSON`** (*Text*, Mandatory): A JSON array defining the validation rules and constraints for each column.
+* **`PageNumber`** (*Integer*, Mandatory): The page/batch number you want to read (1-based index, e.g., `1` for the first batch).
+* **`PageSize`** (*Integer*, Mandatory): The batch size of rows you want to receive (Recommended: `5000` rows per batch to keep the payload lightweight).
 
+### Output Parameters
+* **`CleanedDataJSON`** (*Text*): A JSON array containing the sanitized and cleaned row data belonging only to the requested page. Ready to be deserialized in OutSystems.
+* **`ErrorListJSON`** (*Text*): A structured JSON list containing all validation errors found in the processed rows (includes row number, column name, invalid value, and error message).
+* **`IsValid`** (*Boolean*): Returns `True` if the processed batch meets all specified rules; returns `False` if structural errors or validation failures are found.
 
+---
 
-Processar ficheiros Excel massivos (com mais de 50.000 ou 100.000 linhas) diretamente nos fluxos visuais do OutSystems gera tradicionalmente três grandes problemas: \*\*Timeouts do servidor\*\*, \*\*alto consumo de memória RAM\*\* e \*\*erros de tamanho de payload (`OS-FLRT-60009` ao passar do limite de 5.5MB)\*\*.
+## ⚙️ Validation Rules Configuration (Schema)
 
+The engine accepts a direct array of JSON objects. Each object represents a column you want to validate in the Excel file.
 
-
-O \*\*Smart Excel Stream \& Validator\*\* resolve isto de forma nativa:
-
-\* \*\*Performance Extrema:\*\* Processa 100.000 linhas em menos de 4 segundos usando \*C# Streaming\* (.NET Core).
-
-\* \*\*Consumo de Memória Inteligente:\*\* Lê o ficheiro linha a linha, sem carregar o binário inteiro na memória RAM do container.
-
-\* \*\*Arquitetura à Prova de Falhas (Chunking):\*\* Implementa paginação nativa na própria lógica C# para fatiar o retorno do JSON, contornando o limite de 5.5MB da plataforma ODC.
-
-\* \*\*Validação Dinâmica (Rule-Driven):\*\* Não precisa de desenhar dezenas de `Ifs` visuais. Defina as regras de validação num esquema JSON simples e o motor trata do resto.
-
-
-
-\---
-
-
-
-\## 🏗️ Como Funciona a Assinatura (API Reference)
-
-
-
-O componente expõe uma única Server Action centralizada: \*\*`ValidateExcelFile`\*\*.
-
-
-
-\### Parâmetros de Entrada (Inputs)
-
-\* \*\*`FileBinary`\*\* (\*Binary Data\*, Obrigatório): O conteúdo binário do ficheiro Excel (`.xlsx`) carregado pelo utilizador.
-
-\* \*\*`ValidationRulesJSON`\*\* (\*Text\*, Obrigatório): Array JSON que define as regras e restrições de cada coluna.
-
-\* \*\*`PageNumber`\*\* (\*Integer\*, Obrigatório): O número da página/lote que pretende ler (Baseado em 1, ex: `1` para o primeiro lote).
-
-\* \*\*`PageSize`\*\* (\*Integer\*, Obrigatório): O tamanho do lote de dados que deseja receber (Recomendado: `5000` linhas por lote para manter o payload leve).
-
-
-
-\### Parâmetros de Saída (Outputs)
-
-\* \*\*`CleanedDataJSON`\*\* (\*Text\*): Array JSON contendo os dados das linhas limpas e purificadas pertencentes apenas à página solicitada. Pronto para ser desserializado no OutSystems.
-
-\* \*\*`ErrorListJSON`\*\* (\*Text\*): Lista estruturada em JSON contendo todos os erros de validação encontrados nas linhas processadas (ex: linha, coluna, valor e mensagem de erro).
-
-\* \*\*`IsValid`\*\* (\*Boolean\*): Retorna `True` se o lote processado cumprir todas as regras estipulated; retorna `False` se existirem erros ou avisos estruturais.
-
-
-
-\---
-
-
-
-\## ⚙️ Configuração do JSON de Regras (Schema)
-
-
-
-O motor aceita um array direto de objetos JSON. Cada objeto representa uma coluna que deseja validar no Excel.
-
-
-
-\### Formato Suportado
-
+### Supported Format
 ```json
-
-\[
-
-&#x20; {
-
-&#x20;   "column": "Name",
-
-&#x20;   "required": true
-
-&#x20; },
-
-&#x20; {
-
-&#x20;   "column": "Age",
-
-&#x20;   "min": 18
-
-&#x20; }
-
+[
+  {
+    "column": "Name",
+    "required": true
+  },
+  {
+    "column": "Age",
+    "min": 18
+  }
 ]
-
 ```
 
+### Available Properties:
+* **`column`**: The exact name of the column header in the first row of the Excel file (*Case-Sensitive*).
+* **`required`**: If set to `true`, rejects the row if the cell is empty.
+* **`min`**: Defines the minimum accepted value for numeric data.
 
+---
 
-\### Propriedades Disponíveis:
+## 🚀 Implementation Guide (Step-by-Step)
 
-\* \*\*`column`\*\*: Nome exato do cabeçalho da coluna na primeira linha do Excel (\*Case-Sensitive\*).
+To implement this component in your Reactive Screen, follow these 4 simple steps:
 
-\* \*\*`required`\*\*: Se definido como `true`, rejeita a linha caso a célula esteja vazia.
+### Step 1: File Capture
+1. Drag the **Upload** widget onto your screen.
+2. Bind the *File Content* and *File Name* properties to two local variables (`UploadedContent` and `UploadedName`).
+3. Set the Upload widget's *Accept* property to `.xlsx`.
 
-\* \*\*`min`\*\*: Define o valor mínimo aceite para dados numéricos.
+### Step 2: Create Structures for Deserialization
+Create the following **Structures** in your OutSystems module to receive the sanitized JSON data:
+* **`ExcelRowResult`**: Add attributes that match your Excel columns (e.g., `Name` as *Text* and `Age` as *Integer*).
+* **`ExcelValidationError`**: Attributes to catch errors: `Row` (Integer), `Column` (Text), `Value` (Text), `Error` (Text).
 
+### Step 3: Configure the Logical Flow (Screen Action)
+On your processing button's click event, build the following flow:
+1. Call the **`ValidateExcelFile`** Server Action. Pass the binary file, the rules JSON, the current page (e.g., `1`), and the batch size (e.g., `5000`).
+2. Add a **JSON Deserialize** node pointing to the `CleanedDataJSON` output and set the Data Type to `ExcelRowResult List`.
+3. Assign the Deserialize output to a local list variable (`CleanedRowsList`) to feed your screen.
 
+### Step 4: Interface Pagination
+For giant files, use a loop or the default pagination of the OutSystems **Table** widget. Whenever the user changes pages on the table, re-execute the Screen Action incrementing the **`PageNumber`** parameter (e.g., Page 1, Page 2, Page 3) until `CleanedDataJSON` returns an empty array, indicating the end of the document.
 
-\---
+---
 
-
-
-\## 🚀 Guia de Implementação (Passo a Passo)
-
-
-
-Para implementar este componente no seu ecrã reativo, siga estes 4 passos simples:
-
-
-
-\### Passo 1: Captura do Ficheiro
-
-1\. Arraste o widget \*\*Upload\*\* para o seu ecrã.
-
-2\. Associe as propriedades \*File Content\* e \*File Name\* a duas variáveis locais (`UploadedContent` e `UploadedName`).
-
-3\. Mude a propriedade \*Accept\* do Upload para `.xlsx`.
-
-
-
-\### Passo 2: Criar as Estruturas para Desserializar
-
-Crie as seguintes \*\*Structures\*\* no seu módulo OutSystems para receber os dados limpos do JSON:
-
-\* \*\*`ExcelRowResult`\*\*: Crie os atributos que coincidem com as colunas do seu Excel (ex: `Name` do tipo \*Text\* e `Age` do tipo \*Integer\*).
-
-\* \*\*`ExcelValidationError`\*\*: Atributos para capturar erros: `Row` (Integer), `Column` (Text), `Value` (Text), `Error` (Text).
-
-
-
-\### Passo 3: Configurar o Fluxo Lógico (Screen Action)
-
-No clique do botão de processamento, monte o seguinte fluxo:
-
-1\. Chame a Server Action \*\*`ValidateExcelFile`\*\*. Passando o arquivo, o JSON de regras, a página atual (ex: `1`) e o tamanho do lote (ex: `5000`).
-
-2\. Adicione o nó \*\*JSON Deserialize\*\* apontando para o output `CleanedDataJSON` e use a estrutura `ExcelRowResult List` como Data Type.
-
-3\. Atribua o resultado do Deserialize a uma variável local de lista (`CleanedRowsList`) para alimentar o seu ecrã.
-
-
-
-\### Passo 4: Paginação da Interface
-
-Para ficheiros gigantes, crie um loop ou utilize a paginação padrão do widget \*\*Table\*\* do OutSystems. Sempre que o utilizador mudar de página na tabela, re-execute a Screen Action incrementando o parâmetro \*\*`PageNumber`\*\* (ex: Página 1, Página 2, Página 3) até que o `CleanedDataJSON` retorne um array vazio, indicando o fim do documento.
-
-
-
-\---
-
-
-
-\## 📈 Melhores Práticas \& Limitações
-
-\* \*\*Aba Padrão:\*\* O motor faz a leitura automática da \*\*primeira Worksheet (Aba)\*\* ativa dentro do ficheiro Excel.
-
-\* \*\*Cabeçalhos:\*\* A primeira linha do ficheiro Excel é estritamente tratada como a linha de cabeçalhos. Certifique-se de que não existem linhas em branco no topo do documento.
-
-\* \*\*Tamanho Máximo do Lote:\*\* Embora o motor C# consiga processar fatias maiores, evite usar um `PageSize` superior a `10000` linhas para garantir que os dados trafegam de forma instantânea e sem latência na rede.
-
-
-
+## 📈 Best Practices & Limitations
+* **Default Sheet:** The engine automatically reads the **first active Worksheet (Tab)** inside the Excel file.
+* **Headers:** The first row of the Excel file is strictly treated as the header row. Make sure there are no blank rows at the top of the document.
+* **Maximum Batch Size:** Although the C# engine can process larger slices, avoid setting a `PageSize` higher than `10000` rows to ensure instant data transfer without network latency.
